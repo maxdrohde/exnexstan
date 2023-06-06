@@ -1,11 +1,22 @@
 Package: exnexstan
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Fit EXNEX models with Stan
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Author: Maximilian Rohde
+Maintainer: Maximilian Rohde <maxdrohde@gmail.com>
+Description: R package for fitting Bayesian EXNEX models with Stan.
+    Based on the original paper "Robust exchangeability designs for early phase clinical trials with multiple strata" by Neuenschwander et al. 
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+URL: https://github.com/maxdrohde/exnexstan
+BugReports: https://github.com/maxdrohde/exnexstan/issues
+RoxygenNote: 7.2.3
+Imports: 
+    cmdstanr,
+    dplyr,
+    gt,
+    rlang (>= 0.4.11),
+    stringr
+Suggests: 
+    roxygen2
