@@ -2,16 +2,16 @@
 % Please edit documentation in R/summary_table.R
 \name{summary_table}
 \alias{summary_table}
-\title{Create a gt HTML summary table from a EXNEX object}
+\title{Create a gt HTML summary table from a fitted EXNEX model}
 \usage{
 summary_table(exnex_model)
 }
 \arguments{
-\item{exnex_model}{An EXNEX model object}
+\item{exnex_model}{A fitted EXNEX model}
 }
 \value{
 A gt HTML table summarizing the model results
 }
 \description{
-Create a gt HTML summary table from a EXNEX object
+Create a gt HTML summary table from a fitted EXNEX model
 }

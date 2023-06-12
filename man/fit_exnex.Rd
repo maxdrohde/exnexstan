@@ -2,12 +2,17 @@
 % Please edit documentation in R/fit_exnex.R
 \name{fit_exnex}
 \alias{fit_exnex}
-\title{Fit an EXNEX model}
+\title{Fit an EXNEX model with Stan}
 \usage{
 fit_exnex(
   n,
   r,
   p_exch,
+  mu_prior_mean = -1.73,
+  mu_prior_sd = 2.616,
+  tau_prior_sd = 1,
+  nex_prior_mean = -1.73,
+  nex_prior_sd = 2.801,
   seed = 123456789,
   chains = 4,
   parallel_chains = 4,
@@ -24,6 +29,18 @@ fit_exnex(
 
 \item{p_exch}{A numeric vector specifying the prior on the exchangeability proportion for each strata}
 
+\item{mu_prior_mean}{Mean for the normal prior set on mu.}
+
+\item{mu_prior_sd}{Standard deviation for the normal prior set on mu.}
+
+\item{tau_prior_sd}{Standard deviation for the normal prior set on tau.
+Tau has a lower bound of zero, so setting \code{tau_prior_sd = 1} is equivalent to a standard
+half-normal distribution.}
+
+\item{nex_prior_mean}{Mean for the normal prior set on the non-exchangeable distributions.}
+
+\item{nex_prior_sd}{Standard deviation for the normal prior set on the non-exchangeable distributions.}
+
 \item{seed}{Set seed for the random number generated}
 
 \item{chains}{Number of MCMC chains to run}
@@ -36,14 +53,22 @@ fit_exnex(
 
 \item{adapt_delta}{Tuning parameter for MCMC sampling}
 
-\item{...}{Other parameters to be passed into the `sample` function of cmdstanr}
+\item{...}{Other parameters to be passed into the sample function of cmdstanr}
 }
 \value{
 A fitted cmdstanr model
 }
 \description{
-Fit an EXNEX model
+Fit an EXNEX model with Stan
 }
+\section{MCMC convergence issues}{
+
+When \code{p_exch} is set close to 1, there can be convergence issues
+due to the funnel-like geometry that arises when \eqn{\tau} is close to zero.
+See the \code{\link[=fit_exnex]{fit_exnex()}} function, which can fix convergence issue using
+a non-centered parameterization of the model for the special case of \code{p_exch = 1}.
+}
+
 \examples{
 \dontrun{
 # Example data from Table 1 of Neuenschwander et al.

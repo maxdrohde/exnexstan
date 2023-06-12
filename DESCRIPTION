@@ -20,3 +20,4 @@ Imports:
     stringr
 Suggests: 
     roxygen2
+Roxygen: list(markdown = TRUE)

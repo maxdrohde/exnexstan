@@ -1,16 +1,22 @@
-#' Fit an EXNEX model with Stan
+#' Fit an exchangeable hierarchical model using a non-centered parameterization
+#'
+#' When fitting an EXNEX model with `p_exch` close to 1, there can be convergence issues
+#' due to the funnel-like geometry that arises when \eqn{\tau} is close to zero.
+#' For the special case of `p_exch = 1`,
+#' this function fits the model using a non-centered parameterization,
+#' which can fix the convergence issues.
+#' See the [Stan user guide](https://mc-stan.org/docs/stan-users-guide/reparameterization.html)
+#' for more information.
+#'
 #'
 #' @param n An integer vector with the number of observations per strata
 #' @param r An integer vector with the number of "successes" per strata
-#' @param p_exch A numeric vector specifying the prior probability of exchangeability for each strata
 #' @param mu_prior_mean Mean for the normal prior set on mu.
 #' @param mu_prior_sd Standard deviation for the normal prior set on mu.
 #' @param tau_prior_mean Mean for the normal prior set on tau. Tau has a lower bound of zero so any probability mass below zero will be reallocated.
 #' @param tau_prior_sd Standard deviation for the normal prior set on tau.
 #' Tau has a lower bound of zero, so setting `tau_prior_sd = 1` is equivalent to a standard
 #' half-normal distribution.
-#' @param nex_prior_mean Mean for the normal prior set on the non-exchangeable distributions.
-#' @param nex_prior_sd Standard deviation for the normal prior set on the non-exchangeable distributions.
 #' @param seed Set seed for the random number generated
 #' @param chains Number of MCMC chains to run
 #' @param parallel_chains Number of cores to use for running chains in parallel
@@ -19,63 +25,50 @@
 #' @param adapt_delta Tuning parameter for MCMC sampling
 #' @param ... Other parameters to be passed into the sample function of cmdstanr
 #'
+#' @seealso [exnexstan::fit_exnex()]
+#'
 #' @examples
 #' \dontrun{
 #' # Example data from Table 1 of Neuenschwander et al.
-#' fit_exnex(r = c(2, 0, 1, 6, 7, 3, 5, 1, 0, 3) |> as.integer(),
-#'           n = c(15, 13, 12, 28, 29, 29, 26, 5, 2, 20) |> as.integer(),
-#'           p_exch = rep(0.5, 10),
-#'           adapt_delta = 0.99)
+#' fit_exch(r = c(2, 0, 1, 6, 7, 3, 5, 1, 0, 3) |> as.integer(),
+#'          n = c(15, 13, 12, 28, 29, 29, 26, 5, 2, 20) |> as.integer(),
+#'          adapt_delta = 0.99)
 #' }
-#'
-#' @section MCMC convergence issues:
-#' When `p_exch` is set close to 1, there can be convergence issues
-#' due to the funnel-like geometry that arises when \eqn{\tau} is close to zero.
-#' See the [exnexstan::fit_exnex()] function, which can fix convergence issue using
-#' a non-centered parameterization of the model for the special case of `p_exch = 1`.
 #'
 #' @return A fitted cmdstanr model
 #' @export
 #'
 #'
-fit_exnex <- function(n,
-                      r,
-                      p_exch,
-                      mu_prior_mean = -1.73,
-                      mu_prior_sd = 2.616,
-                      tau_prior_mean = 0,
-                      tau_prior_sd = 1,
-                      nex_prior_mean = -1.73,
-                      nex_prior_sd = 2.801,
-                      seed = 123456789,
-                      chains = 4,
-                      parallel_chains = 4,
-                      iter_warmup = 3000,
-                      iter_sampling = 5000,
-                      adapt_delta = 0.9,
-                      ...){
+fit_exch <- function(n,
+                     r,
+                     mu_prior_mean = -1.73,
+                     mu_prior_sd = 2.616,
+                     tau_prior_mean = 0,
+                     tau_prior_sd = 1,
+                     seed = 123456789,
+                     chains = 4,
+                     parallel_chains = 4,
+                     iter_warmup = 3000,
+                     iter_sampling = 5000,
+                     adapt_delta = 0.9,
+                     ...){
 
   # Data checking
-  if(!length(unique(lengths(list(r, n, p_exch)))) == 1L)
-    stop("Error: r, n, and p_exch must have the same length")
+  if(!length(unique(lengths(list(r, n)))) == 1L)
+    stop("Error: r and n must have the same length")
   if(!all(is.integer(n), is.integer(r)))
     stop("Error: r and n must be integer vectors")
-  if(!is.numeric(p_exch))
-    stop("Error: p_exch must be a numeric vector")
 
   # Format data for Stan
   data_list <-
     list(
       r = r,
       n = n,
-      p_exch = p_exch,
       J = length(n),
       mu_prior_mean = mu_prior_mean,
       mu_prior_sd = mu_prior_sd,
       tau_prior_mean = tau_prior_mean,
-      tau_prior_sd = tau_prior_sd,
-      nex_prior_mean = nex_prior_mean,
-      nex_prior_sd = nex_prior_sd
+      tau_prior_sd = tau_prior_sd
     )
 
   # Get the path to the Stan executable file
@@ -83,7 +76,7 @@ fit_exnex <- function(n,
   # and are copied to the user's computer when installed. system.file() is
   # used to locate the file after installation.
   # See here for details: https://r-pkgs.org/misc.html#sec-misc-inst
-  exe <- system.file("exnex", package = "exnexstan")
+  exe <- system.file("ex", package = "exnexstan")
 
   # Read in the Stan executable file
   mod <- cmdstanr::cmdstan_model(exe_file = exe)
