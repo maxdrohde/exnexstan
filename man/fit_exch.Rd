@@ -7,6 +7,10 @@
 fit_exch(
   n,
   r,
+  mu_prior_mean = -1.73,
+  mu_prior_sd = 2.616,
+  tau_prior_mean = 0,
+  tau_prior_sd = 1,
   seed = 123456789,
   chains = 4,
   parallel_chains = 4,
@@ -20,6 +24,16 @@ fit_exch(
 \item{n}{An integer vector with the number of observations per strata}
 
 \item{r}{An integer vector with the number of "successes" per strata}
+
+\item{mu_prior_mean}{Mean for the normal prior set on mu.}
+
+\item{mu_prior_sd}{Standard deviation for the normal prior set on mu.}
+
+\item{tau_prior_mean}{Mean for the normal prior set on tau. Tau has a lower bound of zero so any probability mass below zero will be reallocated.}
+
+\item{tau_prior_sd}{Standard deviation for the normal prior set on tau.
+Tau has a lower bound of zero, so setting \code{tau_prior_sd = 1} is equivalent to a standard
+half-normal distribution.}
 
 \item{seed}{Set seed for the random number generated}
 
