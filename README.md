@@ -13,5 +13,8 @@ To use `exnexstan`, the `cmdstanr` package must be installed and working. For de
 
 # Vignettes
 
+We provide two vignettes that explain the use of `exnexstan` to fit EXNEX models for binary data and count data.
 
+- Binary data: <https://maxdrohde.github.io/exnexstan/vignettes/exnex_binary_vignette.html>
+- Count data: <https://maxdrohde.github.io/exnexstan/vignettes/exnex_poisson_vignette.html>
 
