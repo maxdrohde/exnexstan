@@ -55,6 +55,8 @@ Z_{j} &\sim \operatorname{Bernoulli}(p_j) && \text{(Indicator variable of EX vs 
 r_j &\sim \operatorname{Binomial}(n_j, \text{logit}^{-1}(\theta_j)) && \text{(Likelihood)}
 \end{align*}
 
+ ![Illustration of the binary EXNEX model showing the connections between the likelihood, priors, and variables.](./binary_diagram.png)
+
 To illustrate the `exnexstan` package, we use the data shown in Table 1 of [Neuenschwander et al.](https://onlinelibrary.wiley.com/doi/10.1002/pst.1730). The data come from a basket clinical trial conducted to assess the efficacy of the cancer therapy, Imatinib in multiple disease strata, where the primary outcome variable is binary response to treatment.
 
 # A first example
