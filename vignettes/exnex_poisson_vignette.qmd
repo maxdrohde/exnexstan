@@ -1,0 +1,514 @@
+---
+title: "EXNEX with varying follow-up times"
+subtitle: ""
+author:
+  - name: Maximilian Rohde
+date: "`r Sys.Date()`"
+cache: false
+fig-width: 8
+fig-height: 6
+fig-dpi: 500
+knitr:
+  opts_chunk: 
+    dev: "ragg_png"
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    standalone: true
+    embed-resources: true
+    code-tools: true
+    code-fold: false
+    code-link: true
+    code-block-bg: "#f1f3f5"
+    code-block-border-left: "#31BAE9"
+    mainfont: Source Sans Pro
+    theme: cosmo
+    fontsize: 16px
+    fig-format: retina
+    fig-cap-location: bottom
+    tbl-cap-location: top
+    reference-location: document
+    citation-location: document
+execute:
+  warning: false
+  message: false
+---
+
+# Setup
+
+```{r}
+#| cache: false
+
+library(exnexstan)
+
+library(tidyverse)
+library(bayesplot)  # MCMC Diagnostic plots
+library(tidybayes)  # Bayesian geoms for ggplot
+library(patchwork)  # Plotting tools
+library(gt)         # HTML tables
+library(extrafont)  # Font in plots
+
+# Set global ggplot theme
+theme_set(cowplot::theme_cowplot(font_size=12,
+                                 font_family = "Fira Sans"))
+```
+
+# Motivation
+
+When monitoring for adverse events in a platform trial, it may be necessary to perform an interim analysis when follow-up is not complete for one or more of the trials. Due to the varying follow-up time for each patient when the interim analysis is conducted, it is not reasonable to compare the proportion of patients that experienced an adverse event (as would be done at the end of the trial).
+
+A more principled approach is to weight the number of participants who experience an adverse events in a given trial by the total amount of patient follow-up. In this example, we use a Poisson model for the number of adverse events and an offset to account for the varying amount of follow-up time in each trial. In this model, once a participant experiences an adverse event, they would not contribute more follow-up time for that adverse event.
+
+One limitation of this approach is that patient follow-up time is treated as exchangeable: the model treats one patient followed for 20 days identically to 5 patients followed for 4 days. Depending on how the adverse events occur over time, this may not be a reasonable assumption. Time-to-event analysis would overcome this limitation, but it is more difficult to incorporate the EXNEX structure because common models such as Kaplan-Meier and Cox proportional hazards are not parametric.
+
+# Model
+
+We can express the model as:
+
+```{=tex}
+\begin{align*}
+Z_{j} &\sim \operatorname{Bernoulli}(p_j) && \text{(Indicator variable of EX vs NEX)} \\
+\theta_j &\sim \operatorname{Normal}(\text{mean} = \mu_{Z_{j}}, \, \text{sd} = \tau_{Z_{j}}) && \text{(Adverse event rate on log scale)} \\
+\mu_0 &= \texttt{nex\_prior\_mean} && \text{(NEX mean)} \\
+\tau_0 &= \texttt{nex\_prior\_sd} && \text{(NEX standard deviation)} \\
+\mu_1 &\sim \operatorname{Normal}(\texttt{mu\_prior\_mean}, \, \texttt{mu\_prior\_sd}) && \text{(EX mean)} \\
+\tau_1 &\sim \operatorname{Half-Normal}(\texttt{tau\_prior\_mean}, \, \texttt{tau\_prior\_sd}) && \text{(EX standard deviation)} \\
+r_j &\sim \operatorname{Poisson}(\text{exp}(\theta_j + \log(t_j))) && \text{(Likelihood with offset)}
+\end{align*}
+```
+Below is the Stan code used for the analysis. Note that because Stan cannot handle discrete variables due to the Hamiltonian MCMC used for sampling, the indicator $Z_{j}$ for EX vs NEX must be marginalized out.
+
+``` stan
+data {
+  int<lower=1> J;                         // Number of trial strata
+  array[J] real t;                        // Total follow-up time per strata
+  array[J] int r;                         // Number of AE observations per strata
+  array[J] real<lower=0, upper=1> p_exch; // Mixture probability of exchangeability
+
+  // User-specified parameters for the priors
+  real mu_prior_mean;
+  real mu_prior_sd;
+  real tau_prior_mean;
+  real tau_prior_sd;
+  real nex_prior_mean; 
+  real nex_prior_sd;
+  real tau_lower_bound;
+}
+parameters {
+  real mu;                           // Mean of hierarchical log-rate distribution 
+  real<lower=tau_lower_bound> tau;   // SD of hierarchical log-rate distribution
+  vector[J] theta;                   // Log-rate for each strata
+}
+model {
+
+  // Priors
+  mu ~ normal(mu_prior_mean, mu_prior_sd); 
+  tau ~ normal(tau_prior_mean, tau_prior_sd); // Half-normal prior because of the constraint
+
+  for (j in 1:J) {                                                          // Loop over the trial strata
+    target += log_mix(p_exch[j],                                            // Strata-specific mixing parameter
+                      normal_lpdf(theta[j] | mu, tau),                      // EX
+                      normal_lpdf(theta[j] | nex_prior_mean, nex_prior_sd)  // NEX
+                      );
+      
+    r[j] ~ poisson_log(theta[j] + log(t[j])); // Poisson likelihood with offset
+  }
+}
+generated quantities {
+   // Convert from log space
+   vector[J] rate;
+   rate = exp(theta);
+
+  // Update mixture proportions
+  vector<lower=0, upper=1>[J] p_mix;
+  for (j in 1:J) {
+    real lp1 = bernoulli_lpmf(0 | p_exch[j])
+               + normal_lpdf(theta[j] | mu, tau);
+    real lp2 = bernoulli_lpmf(1 | p_exch[j])
+               + normal_lpdf(theta[j] | nex_prior_mean, nex_prior_sd);
+    p_mix[j] = exp(lp1 - log_sum_exp(lp1, lp2));
+  }
+}
+```
+
+# Scenario
+
+For an example scenario, we will create a platform trial comprised of 8 trials. We will assume that the EXNEX model is reasonable, so we generate two trials with a high event rate (non-exchangeable) and 6 with a low event rate (exchangeable). For simplicity, we will use the expected number of outcomes for each trial. The data for this scenario are shown in the below table.
+
+| Trial | Follow-up time | Number of events | Rate |
+|-------|----------------|------------------|------|
+| 1     | 10             | 8                | 0.8  |
+| 2     | 30             | 3                | 0.2  |
+| 3     | 60             | 6                | 0.2  |
+| 4     | 120            | 12               | 0.2  |
+| 5     | 10             | 1                | 0.2  |
+| 6     | 30             | 3                | 0.2  |
+| 7     | 60             | 6                | 0.2  |
+| 8     | 120            | 72               | 0.6  |
+
+If we interpret the follow-up time as months of follow-up, then a rate of 0.1 would imply an average of 1 event every 10 months of participant follow-up.
+
+## Generate scenario data
+
+```{r}
+# Follow-up times
+t <- rep(c(10, 30, 60, 120), 2)
+
+# True rates
+rate <- c(0.8, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.6)
+
+# Number of observed events
+r <- as.integer(t*rate)
+```
+
+```{r}
+#| echo: false
+print(r)
+```
+
+# Statistical modeling
+
+## Prior justification
+
+EXNEX models can be sensitive to prior specification, so we must be careful to set appropriate priors.
+
+### NEX
+
+For the NEX prior, we calculate how the prior on the log-scale induces a prior for the Poisson rate parameter. In other words, we sample values from the normal prior on the log-rate parameter and then exponentiate to obtain the induced prior on the rate scale.
+
+```{r}
+nex_mean <- -1
+nex_sd <- 1
+
+# Generate samples from the prior
+x <- exp(rnorm(1e5, nex_mean, nex_sd))
+```
+
+This prior allocates about 80% of the prior probability to rate parameters below 1.
+
+```{r}
+#| echo: false
+p1 <- 
+tibble(x) |>
+  ggplot() +
+  aes(x) +
+  stat_ecdf() +
+  geom_vline(xintercept = 1, linetype=2) +
+  scale_x_continuous(breaks=seq(0, 5, by=0.5)) +
+  coord_cartesian(xlim=c(0,5)) +
+  labs(x = "Poisson rate parameter",
+       y = "Prior CDF")
+
+p2 <-
+  tibble(x) |>
+  ggplot() +
+  aes(x) +
+  geom_histogram(
+    mapping = aes(y = after_stat(density)),
+    binwidth = 0.1,
+    fill = "lightgray",
+    color = "black"
+  ) +
+  scale_x_continuous(breaks = seq(0, 10, by = 1)) +
+  coord_cartesian(xlim = c(0, 10)) +
+  labs(
+    x = "Poisson rate parameter",
+    y = "Prior Density"
+  )
+
+p1+p2
+```
+
+### EX
+
+For the exchangeable priors (mu and tau), we compute the induced prior for the rate parameter by first sampling mu and tau, and then drawing a theta from that distribution. We repeat the process as in the NEX case and observe that these parameters induce a similar prior.
+
+```{r}
+mu_mean <- -1
+mu_sd <- 1
+tau_mean <- 0
+tau_sd <- 0.5
+```
+
+```{r}
+# Draw a sample from the EX prior by first drawing from the hierarchical parameters
+# then drawing theta conditional on them
+draw <- function(mu_mean,
+                 mu_sd,
+                 tau_mean,
+                 tau_sd){
+  # Draw mu
+  mu <- rnorm(n=1,
+              mean=mu_mean,
+              sd=mu_sd)
+  # Draw tau
+  tau <- rnorm(n=1,
+               mean=tau_mean,
+               sd=tau_sd) |> abs()
+  # Draw theta conditional on mu and tau
+  theta <- rnorm(n=1,
+                 mean=mu,
+                 sd=tau)
+  
+  return(exp(theta))
+}
+
+x <- map_dbl(1:1e5, ~draw(mu_mean, mu_sd, tau_mean, tau_sd))
+```
+
+```{r}
+#| echo: false
+p1 <- 
+tibble(x) |>
+  ggplot() +
+  aes(x) +
+  stat_ecdf() +
+  geom_vline(xintercept = 1, linetype=2) +
+  scale_x_continuous(breaks=seq(0, 5, by=0.5)) +
+  coord_cartesian(xlim=c(0,5)) +
+  labs(x = "Poisson rate parameter",
+       y = "Prior CDF")
+
+p2 <-
+  tibble(x) |>
+  ggplot() +
+  aes(x) +
+  geom_histogram(
+    mapping = aes(y = after_stat(density)),
+    binwidth = 0.1,
+    fill = "lightgray",
+    color = "black"
+  ) +
+  scale_x_continuous(breaks = seq(0, 10, by = 1)) +
+  coord_cartesian(xlim = c(0, 10)) +
+  labs(
+    x = "Poisson rate parameter",
+    y = "Prior Density"
+  )
+
+p1+p2
+```
+
+## Model fitting
+
+We now fit the EX, EXNEX, and NEX models to these data to compare how they perform.
+
+### Parameters
+
+```{r}
+mu_prior_mean = -1
+mu_prior_sd = 1
+tau_lower_bound = 0
+tau_prior_mean = 0
+tau_prior_sd = 0.5
+nex_prior_mean = -1
+nex_prior_sd = 1
+```
+
+### EX
+
+```{r}
+#| output: false
+ex <-
+  exnexstan::fit_exnex_varying_time(
+    t = t,
+    r = r,
+    p_exch = rep(1, 8),
+    mu_prior_mean = mu_prior_mean,
+    mu_prior_sd = mu_prior_sd,
+    tau_lower_bound = tau_lower_bound,
+    tau_prior_mean = tau_prior_mean,
+    tau_prior_sd = tau_prior_sd,
+    nex_prior_mean = nex_prior_mean,
+    nex_prior_sd = nex_prior_sd,
+    adapt_delta = 0.99
+  )
+```
+
+```{r}
+#| echo: false
+
+ex$summary() |>
+      dplyr::filter(stringr::str_starts(.data[["variable"]], "rate\\[")) |>
+      dplyr::select(-c("ess_bulk", "ess_tail", "mad")) |>
+      dplyr::select(`Strata Response Probability` = "variable",
+             `Posterior Mean` = "mean",
+             `Posterior Median` = "median",
+             `Posterior SD` = "sd",
+             `0.05 Quantile` = "q5",
+             `0.95 Quantile` = "q95",
+             `Rhat` = "rhat") |>
+      gt::gt() |>
+      gt::tab_header(
+        title = "EX Analysis Results",
+      ) |>
+      gt::fmt_number(decimals = 2, columns = 2:7) |>
+      gt::opt_interactive()
+```
+
+### NEX
+
+```{r}
+#| output: false
+nex <-
+  exnexstan::fit_exnex_varying_time(
+    t = t,
+    r = r,
+    p_exch = rep(0, 8),
+    mu_prior_mean = mu_prior_mean,
+    mu_prior_sd = mu_prior_sd,
+    tau_lower_bound = tau_lower_bound,
+    tau_prior_mean = tau_prior_mean,
+    tau_prior_sd = tau_prior_sd,
+    nex_prior_mean = nex_prior_mean,
+    nex_prior_sd = nex_prior_sd,
+    adapt_delta = 0.99
+  )
+```
+
+```{r}
+#| echo: false
+
+nex$summary() |>
+      dplyr::filter(stringr::str_starts(.data[["variable"]], "rate\\[")) |>
+      dplyr::select(-c("ess_bulk", "ess_tail", "mad")) |>
+      dplyr::select(`Strata Response Probability` = "variable",
+             `Posterior Mean` = "mean",
+             `Posterior Median` = "median",
+             `Posterior SD` = "sd",
+             `0.05 Quantile` = "q5",
+             `0.95 Quantile` = "q95",
+             `Rhat` = "rhat") |>
+      gt::gt() |>
+      gt::tab_header(
+        title = "NEX Analysis Results",
+      ) |>
+      gt::fmt_number(decimals = 2, columns = 2:7) |>
+      gt::opt_interactive()
+```
+
+### EXNEX
+
+```{r}
+#| output: false
+exnex <-
+  exnexstan::fit_exnex_varying_time(
+    t = t,
+    r = r,
+    p_exch = rep(0.5, 8),
+    mu_prior_mean = mu_prior_mean,
+    mu_prior_sd = mu_prior_sd,
+    tau_lower_bound = tau_lower_bound,
+    tau_prior_mean = tau_prior_mean,
+    tau_prior_sd = tau_prior_sd,
+    nex_prior_mean = nex_prior_mean,
+    nex_prior_sd = nex_prior_sd,
+    adapt_delta = 0.99
+  )
+```
+
+```{r}
+#| echo: false
+
+exnex$summary() |>
+      dplyr::filter(stringr::str_starts(.data[["variable"]], "rate\\[")) |>
+      dplyr::select(-c("ess_bulk", "ess_tail", "mad")) |>
+      dplyr::select(`Strata Response Probability` = "variable",
+             `Posterior Mean` = "mean",
+             `Posterior Median` = "median",
+             `Posterior SD` = "sd",
+             `0.05 Quantile` = "q5",
+             `0.95 Quantile` = "q95",
+             `Rhat` = "rhat") |>
+      gt::gt() |>
+      gt::tab_header(
+        title = "EXNEX Analysis Results",
+      ) |>
+      gt::fmt_number(decimals = 2, columns = 2:7) |>
+      gt::opt_interactive()
+```
+
+## Comparison
+
+```{r}
+#| echo: false
+
+# Extract the posterior draws from each model and add a column
+# to identify the model
+
+exnex_draws <- exnex$draws(format = "df")
+exnex_draws$model <- "EXNEX"
+
+nex_draws <- nex$draws(format = "df") 
+nex_draws$model <- "Stratified (NEX)"
+
+ex_draws <- ex$draws(format = "df")
+ex_draws$model <- "Exchangeable (EX)"
+
+# Combine the draws together
+df <- bind_rows(exnex_draws, nex_draws, ex_draws)
+```
+
+```{r}
+#| echo: false
+
+response_rates <-
+df |>
+  select(model, `rate[1]`:`rate[8]`) |>
+  pivot_longer(cols = -model,
+               names_pattern = "rate\\[(.*)\\]",
+               names_to = "Strata", 
+               values_to = "Exposure-Adjusted Rate") |>
+  mutate(Strata = Strata |> as.integer() |> as.factor())
+```
+
+## Plotting
+
+For each of the methods and each strata, we plot the posterior median along with the 50% and 95% credible intervals. The number of events and total follow-up time are shown for each strata.
+
+```{r}
+#| echo: false
+
+# Data frame with information for plotting the horizontal lines
+# and the text at the top of the graph for each strata
+line_data <-
+  tibble(r = r,
+         n = t,
+         Strata = as.factor(1:8),
+         p = r/n)
+
+# Create the labels (responses / total) for each strata
+line_data$label <- map2_chr(line_data$r, line_data$n, ~glue::glue("{.x}/{.y}"))
+
+response_rates |>
+  ggplot() +
+  aes(x = model, y = `Exposure-Adjusted Rate`) +
+  stat_pointinterval(mapping = aes(color=model, shape=model),
+                     point_interval = "median_hdci",
+                     .width=c(0.5, 0.95)) +
+  geom_hline(data=line_data,
+             mapping = aes(yintercept = p),
+             linetype=2,
+             alpha=0.8) +
+  geom_text(data=line_data |> mutate(model="EXNEX", `Exposure-Adjusted Rate` = 1.4),
+            mapping = aes(label = label),
+            nudge_x = 0.1) +
+  geom_text(data=line_data |> mutate(model="EXNEX", `Exposure-Adjusted Rate` = 1.35),
+            mapping = aes(label = round(p,2)),
+            nudge_x = 0.1) +
+  facet_wrap(~Strata, nrow = 1) +
+  scale_y_continuous(breaks = seq(0, 1.4, by=0.2)) +
+  coord_cartesian(ylim = c(0,1.4)) +
+  labs(x = "",
+       color = "") +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        panel.background = element_rect(fill = "#f2f3f7"),
+        text=element_text(family="Fira Sans")) +
+  guides(shape = "none")
+```

@@ -1,0 +1,381 @@
+---
+title: "`exnexstan` Tutorial"
+subtitle: ""
+author:
+  - name: Maximilian Rohde
+date: "`r Sys.Date()`"
+cache: false
+fig-width: 8
+fig-height: 6
+fig-dpi: 500
+knitr:
+  opts_chunk: 
+    dev: "ragg_png"
+format:
+  html:
+    toc: true
+    toc-depth: 4
+    toc-location: left
+    standalone: true
+    embed-resources: true
+    code-tools: true
+    code-fold: false
+    code-link: true
+    code-block-bg: "#f1f3f5"
+    code-block-border-left: "#31BAE9"
+    mainfont: Source Sans Pro
+    theme: cosmo
+    fontsize: 16px
+    fig-format: retina
+    fig-cap-location: margin
+    tbl-cap-location: margin
+    reference-location: margin
+    citation-location: margin
+execute:
+  warning: false
+  message: false
+---
+
+# Background
+
+The `exnexstan` package implements the EXNEX model for binary data introduced in "Robust exchangeability designs for early phase clinical trials with multiple strata" by Neuenschwander et al. (2015) (<https://onlinelibrary.wiley.com/doi/10.1002/pst.1730>) using Stan. The `cmdstanr` package is used to interface R with Stan^[Installing and compiling `cmdstan` can be done through `cmdstanr`. See the "Installing CmdStan" documentation here: <https://mc-stan.org/cmdstanr/articles/cmdstanr.html#installing-cmdstan-1>].
+
+The EXNEX methodology is an extension of Bayesian hierarchical models (BHMs). Bayesian hierarchical models are commonly used to analyze data from related studies, such as strata in a basket trial, since the partial pooling resulting from BHMs is often a good compromise between complete stratification and complete pooling. However, BHMs can perform poorly if some strata are not exchangeable with the other strata.
+
+The EXNEX model is a mixture model that allows for each strata the possibility of being exchangeable (with probability $p_j$) with the other strata, or nonexchangeable with the other strata (with probability (1 - $p_j$)). This increases the robustness of the model to possibility of certain strata being not exchangeable with the others. More than two exchangeability groups may be specified in the model.
+
+We write out the model in mathematical notation below. For clarity, we use the names for the prior values as given in the code.
+\begin{align*}
+Z_{j} &\sim \operatorname{Bernoulli}(p_j) && \text{(Indicator variable of EX vs NEX)} \\
+\theta_j &\sim \operatorname{Normal}(\text{mean} = \mu_{Z_{j}}, \text{sd} = \tau_{Z_{j}}) && \text{(Response probability on log-odds scale)} \\
+\mu_0 &= \texttt{nex\_prior\_mean} && \text{(NEX mean)} \\
+\tau_0 &= \texttt{nex\_prior\_sd} && \text{(NEX standard deviation)} \\
+\mu_1 &\sim \operatorname{Normal}(\texttt{mu\_prior\_mean}, \texttt{mu\_prior\_sd}) && \text{(EX mean)} \\
+\tau_1 &\sim \operatorname{Half-Normal}(\texttt{tau\_prior\_mean}, \texttt{tau\_prior\_sd}) && \text{(EX standard deviation)} \\
+r_j &\sim \operatorname{Binomial}(n_j, \text{logit}^{-1}(\theta_j)) && \text{(Likelihood)}
+\end{align*}
+
+To illustrate the `exnexstan` package, we use the data shown in Table 1 of [Neuenschwander et al.](https://onlinelibrary.wiley.com/doi/10.1002/pst.1730). The data come from a basket clinical trial conducted to assess the efficacy of the cancer therapy, Imatinib in multiple disease strata, where the primary outcome variable is binary response to treatment.
+
+# A first example
+
+We begin by loading the `exnexstan` package and some supporting packages for data visualization.
+
+```{r}
+#| cache: false
+
+library(exnexstan)
+
+library(tidyverse)
+library(bayesplot)  # MCMC Diagnostic plots
+library(tidybayes)  # Bayesian geoms for ggplot
+library(patchwork)  # Plotting tools
+library(gt)         # HTML tables
+library(extrafont)
+
+# Set global ggplot theme
+theme_set(cowplot::theme_cowplot(font_size=12,
+                                 font_family = "Fira Sans"))
+```
+
+To fit EXNEX models, use the `fit_exnex()` function. We pass in as arguments the data:
+
+- `r`: the number of responses for each strata
+- `n`: the sample size for each strata
+
+as well as the priors. For this model, we assume a 0.5 prior probability of exchangeability for each strata. We set `adapt_delta = 0.99` to improve convergence of the model.
+
+```{r}
+#| output: false
+mod <-
+exnexstan::fit_exnex(
+          r = c(2,0,1,6,7,3,5,1,0,3) |> as.integer(),
+          n = c(15, 13, 12, 28, 29, 29, 26, 5, 2, 20) |> as.integer(),
+          p_exch = rep(0.5, 10),
+          mu_prior_mean = -1.73,
+          mu_prior_sd = 2.616,
+          tau_prior_sd = 1,
+          nex_prior_mean = -1.73,
+          nex_prior_sd = 2.801,
+          adapt_delta = 0.99
+          )
+
+# Save the posterior draws to a data frame
+draws <- mod$draws(format = "df")
+```
+
+We can take a look at the first 100 posterior draws.
+
+```{r}
+#| echo: false
+draws |>
+  head(100) |>
+  round(2) |>
+  gt() |>
+  opt_interactive()
+```
+
+
+## MCMC diagnostics
+
+Before we interpret the results of the model, it is important to check the MCMC diagnostics. Because the functions in `exnexstan` return a `cmdstanr` model object, we can use all the methods already implemented in `cmdstanr`. See the `cmdstan` [documentation](https://mc-stan.org/cmdstanr/index.html) for more details. Note that `cmdstanr` uses the [R6](https://r6.r-lib.org/) object-oriented system in R, so the functions are called after the object using `$`.
+
+`cmdstan_diagnose()` summarizes the automatic checks that Stan runs when fitting the model. Everything looks good since we observe no divergences and E-BFMI /R-hat values are satisfactory.
+
+```{r}
+mod$cmdstan_diagnose()
+```
+
+We should also visually observe the trace plot using the `bayesplot` package. We will check a few of the relevant parameters.
+
+```{r}
+#| code-fold: true
+bayesplot::color_scheme_set("viridis")
+
+# Trace plot
+mcmc_trace(
+  x = draws,
+  facet_args = list(ncol = 1),
+  pars = c("tau", "theta[1]", "p[1]"),
+  window = c(2000, 3000),
+  np = nuts_params(mod))
+```
+
+## Summarizing results
+
+Now that we have checked the diagnostics, we can view the results of the model.
+
+### Table summary
+
+The `summary_table()` function provides an HTML table of the posterior summaries for each strata.
+
+```{r}
+# Create summary table of posterior
+exnexstan::summary_table(mod)
+```
+
+### Graphics
+
+Using the `tidybayes` extension to the `ggplot` package, we can create informative visualizations of the posterior distribution for each strata.
+
+```{r}
+#| code-fold: true
+
+# Extract response probabilities from draws data.frame
+response_probabilities <-
+draws |>
+  select(`p[1]`:`p[10]`) |>
+  pivot_longer(cols = everything(),
+               names_pattern = "p\\[(.*)\\]",
+               names_to = "Strata", 
+               values_to = "Response Probability") |>
+  mutate(Strata = Strata |> as.integer() |> as.factor())
+```
+
+```{r}
+#| code-fold: true
+
+# Density plots
+p1 <-
+response_probabilities |>
+  ggplot() +
+  aes(x = `Response Probability`, group = Strata) +
+  geom_density(bounds = c(0, Inf)) +
+  coord_cartesian(xlim=c(0,1)) +
+  labs(y = "Posterior Density")
+
+# Credible intervals
+p2 <-
+response_probabilities |>
+  ggplot() +
+  aes(x = `Response Probability`, y = Strata) +
+  stat_interval(.width = c(0.5, 0.8, 0.95, 0.99), linewidth=1.5) +
+  coord_cartesian(xlim=c(0,1)) +
+  labs(color = "Credible Interval") 
+
+# Combine plots
+p1 / p2
+```
+
+We can also look at the posterior probability of being exchangeable for each strata.
+
+```{r}
+#| code-fold: true
+
+# Extract probability of exchangeability for each strata
+exch_probabilities <-
+draws |>
+  select(`p_mix[1]`:`p_mix[10]`) |>
+  pivot_longer(cols = everything(),
+               names_pattern = "p_mix\\[(.*)\\]",
+               names_to = "Strata", 
+               values_to = "Exchangeability Probability") |>
+  mutate(Strata = Strata |> as.integer() |> as.factor())
+```
+
+```{r}
+#| code-fold: true
+
+# Density plots
+p1 <-
+exch_probabilities |>
+  ggplot() +
+  aes(x = `Exchangeability Probability`, group = Strata) +
+  geom_density(bounds = c(0, Inf)) +
+  coord_cartesian(xlim=c(0,1)) +
+  labs(y = "Posterior Density")
+
+# Credible intervals
+p2 <-
+exch_probabilities |>
+  ggplot() +
+  aes(x = `Exchangeability Probability`, y = Strata) +
+  stat_interval(.width = c(0.5, 0.8, 0.95, 0.99), linewidth=1.5) +
+  coord_cartesian(xlim=c(0,1)) +
+  labs(color = "Credible Interval") 
+
+# Combine the plots
+p1 / p2
+```
+
+# Comparing different exchangeability assumptions
+
+In this section, we fit EX, NEX, and EXNEX model for comparison.
+
+## Model fitting
+
+```{r}
+#| output: false
+#| code-fold: true
+
+# Data is the same for all the models
+r = c(2,0,1,6,7,3,5,1,0,3) |> as.integer()
+n = c(15, 13, 12, 28, 29, 29, 26, 5, 2, 20) |> as.integer()
+
+# EXNEX (p_exch = 0.5 for all strata)
+exnex <-
+exnexstan::fit_exnex(
+          r = r,
+          n = n,
+          p_exch = rep(0.5, 10),
+          mu_prior_mean = -1.73,
+          mu_prior_sd = 2.616,
+          tau_prior_sd = 1,
+          nex_prior_mean = -1.73,
+          nex_prior_sd = 2.801,
+          adapt_delta = 0.99
+          )
+# NEX (p_exch = 0 for all strata)
+nex <-
+exnexstan::fit_exnex(
+          r = r,
+          n = n,
+          p_exch = rep(0, 10),
+          mu_prior_mean = -1.73,
+          mu_prior_sd = 2.616,
+          tau_prior_sd = 1,
+          nex_prior_mean = -1.73,
+          nex_prior_sd = 2.801,
+          adapt_delta = 0.99
+          )
+
+# EX (p_exch = 1 for all strata)
+ex <-
+exnexstan::fit_exch(
+          r = r,
+          n = n,
+          mu_prior_mean = -1.73,
+          mu_prior_sd = 2.616,
+          tau_prior_sd = 1,
+          adapt_delta = 0.99
+          )
+```
+
+```{r}
+#| code-fold: true
+
+# Extract the posterior draws from each model and add a column
+# to identify the model
+
+exnex_draws <- exnex$draws(format = "df")
+exnex_draws$model <- "EXNEX"
+
+nex_draws <- nex$draws(format = "df") 
+nex_draws$model <- "Stratified (NEX)"
+
+ex_draws <- ex$draws(format = "df")
+ex_draws$model <- "Exchangeable (EX)"
+
+# Combine the draws together
+df <- bind_rows(exnex_draws, nex_draws, ex_draws)
+```
+
+```{r}
+#| code-fold: true
+
+response_probabilities <-
+df |>
+  select(model, `p[1]`:`p[10]`) |>
+  pivot_longer(cols = -model,
+               names_pattern = "p\\[(.*)\\]",
+               names_to = "Strata", 
+               values_to = "Response Probability") |>
+  mutate(Strata = Strata |> as.integer() |> as.factor())
+```
+
+
+## Plotting
+
+For each of the methods and each strata, we plot the posterior median along with the 50% and 95% credible intervals. Above each strata, we show the number of events out of the total, and the observed response probability.
+
+```{r}
+#| code-fold: true
+
+# Data frame with information for plotting the horizontal lines
+# and the text at the top of the graph for each strata
+line_data <-
+  tibble(r = c(2,0,1,6,7,3,5,1,0,3),
+         n = c(15, 13, 12, 28, 29, 29, 26, 5, 2, 20),
+         Strata = as.factor(1:10),
+         p = r/n)
+
+# Create the labels (responses / total) for each strata
+line_data$label <- map2_chr(line_data$r, line_data$n, ~glue::glue("{.x}/{.y}"))
+
+response_probabilities |>
+  ggplot() +
+  aes(x = model, y = `Response Probability`) +
+  stat_pointinterval(mapping = aes(color=model, shape=model),
+                     point_interval = "median_hdci",
+                     .width=c(0.5, 0.95)) +
+  geom_hline(data=line_data,
+             mapping = aes(yintercept = p),
+             linetype=2,
+             alpha=0.8) +
+  geom_text(data=line_data |> mutate(model="EXNEX", `Response Probability` = 1),
+            mapping = aes(label = label),
+            nudge_x = 0.1) +
+  geom_text(data=line_data |> mutate(model="EXNEX", `Response Probability` = 0.95),
+            mapping = aes(label = round(p,2)),
+            nudge_x = 0.1) +
+  facet_wrap(~Strata, nrow = 1) +
+  scale_y_continuous(breaks = seq(0, 1, by=0.2)) +
+  coord_cartesian(ylim = c(0,1)) +
+  labs(x = "",
+       color = "") +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.line.x = element_blank(),
+        axis.line.y = element_blank(),
+        panel.background = element_rect(fill = "#f2f3f7"),
+        text=element_text(family="Fira Sans")) +
+  guides(shape = "none")
+```
+
+
+
+
+
+
+
