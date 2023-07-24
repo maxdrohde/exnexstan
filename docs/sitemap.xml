@@ -33,4 +33,10 @@
   <url>
     <loc>/reference/tidyeval.html</loc>
   </url>
+  <url>
+    <loc>/vignettes/exnex_binary_vignette.html</loc>
+  </url>
+  <url>
+    <loc>/vignettes/exnex_poisson_vignette.html</loc>
+  </url>
 </urlset>
