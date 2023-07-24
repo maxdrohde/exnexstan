@@ -1,5 +1,5 @@
 ---
-title: "`exnexstan` Tutorial"
+title: "`exnexstan`: Binary data and package overview"
 subtitle: ""
 author:
   - name: Maximilian Rohde
@@ -27,8 +27,8 @@ format:
     theme: cosmo
     fontsize: 16px
     fig-format: retina
-    fig-cap-location: margin
-    tbl-cap-location: margin
+    fig-cap-location: bottom
+    tbl-cap-location: top
     reference-location: margin
     citation-location: margin
 execute:
@@ -38,11 +38,11 @@ execute:
 
 # Background
 
-The `exnexstan` package implements the EXNEX model for binary data introduced in "Robust exchangeability designs for early phase clinical trials with multiple strata" by Neuenschwander et al. (2015) (<https://onlinelibrary.wiley.com/doi/10.1002/pst.1730>) using Stan. The `cmdstanr` package is used to interface R with Stan^[Installing and compiling `cmdstan` can be done through `cmdstanr`. See the "Installing CmdStan" documentation here: <https://mc-stan.org/cmdstanr/articles/cmdstanr.html#installing-cmdstan-1>].
+The `exnexstan` package implements the EXNEX model for binary data introduced in "Robust exchangeability designs for early phase clinical trials with multiple strata" by Neuenschwander et al. (2015) (<https://onlinelibrary.wiley.com/doi/10.1002/pst.1730>) using Stan. The `cmdstanr` package is used to interface R with the Stan probabilistic programming language that fits the models using Markov Chain Monte Carlo (MCMC)^[Installing and compiling `cmdstan` can be done through `cmdstanr`. See the "Installing CmdStan" documentation here: <https://mc-stan.org/cmdstanr/articles/cmdstanr.html#installing-cmdstan-1>].
 
-The EXNEX methodology is an extension of Bayesian hierarchical models (BHMs). Bayesian hierarchical models are commonly used to analyze data from related studies, such as strata in a basket trial, since the partial pooling resulting from BHMs is often a good compromise between complete stratification and complete pooling. However, BHMs can perform poorly if some strata are not exchangeable with the other strata.
+EXNEX models are an extension of Bayesian hierarchical models (BHMs). Bayesian hierarchical models are commonly used to analyze data from related studies, such as strata in a basket trial, since the partial pooling resulting from BHMs is often a good compromise between complete stratification and complete pooling. However, BHMs can perform poorly if some strata are not exchangeable with the other strata.
 
-The EXNEX model is a mixture model that allows for each strata the possibility of being exchangeable (with probability $p_j$) with the other strata, or nonexchangeable with the other strata (with probability (1 - $p_j$)). This increases the robustness of the model to possibility of certain strata being not exchangeable with the others. More than two exchangeability groups may be specified in the model.
+EXNEX is a mixture model that allows for each strata the possibility of being exchangeable (with probability $p_j$) with the other strata, or nonexchangeable with the other strata (with probability (1 - $p_j$)). This increases the robustness of the model to certain strata being not exchangeable with the others. More than two exchangeability groups may be specified in the model, although they can be difficult to fit depending on the amount of data available. Currently, `exnexstan` only supports a single exchangeability group.
 
 We write out the model in mathematical notation below. For clarity, we use the names for the prior values as given in the code.
 \begin{align*}
