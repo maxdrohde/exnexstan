@@ -1,10 +1,12 @@
 ## Overview
 
-The `exnexstan` package provides a user-friendly interface to fitting EXNEX models in R without requiring the user to directly interface with a probabilistic programming language like BUGS, JAGS, or Stan. Stan (<https://mc-stan.org/>) is used to fit the models using modern Hamiltonian Markov Chain Monte Carlo (HMC) sampling.
+The `exnexstan` package provides a user-friendly interface to fitting EXNEX models in R without requiring the user to directly interface with a probabilistic programming language like BUGS, JAGS, or Stan.
+
+Stan (<https://mc-stan.org/>) is used to fit the models using modern Hamiltonian Markov Chain Monte Carlo (HMC) sampling.
 
 ## Installation
 
-`exnexstan` is not on CRAN but can be installed from GitHub using the `install_github()` function from the `devtools` package.
+The `exnexstan` package is not on CRAN, but can be installed from GitHub using the `install_github()` function from the `devtools` package.
 
 ```
 # Skip if devtools is already installed
