@@ -31,7 +31,7 @@ For additional details on the functions, see the package documentation within R,
 
 ## References
 
-For the mathematical details of EXNEX and more in-depth examples, see the [original paper](https://doi.org/10.1002/pst.1730) by Neuenschwander et al. (2016).
+For the mathematical details of EXNEX and more in-depth examples, see the [original paper](https://doi.org/10.1002/pst.1730) by Neuenschwander et al. (2015).
 
 ## Disclaimer
 
