@@ -62,22 +62,29 @@
   <main id="main" class="col-md-9"><div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>The <code>exnexstan</code> package provides a user-friendly interface to fitting EXNEX models in R without interfacing with a probabilistic programming languages like BUGS, JAGS, or Stan.</p>
+<p>The <code>exnexstan</code> package provides a user-friendly interface to fitting EXNEX models in R without requiring the user to directly interface with a probabilistic programming language like BUGS, JAGS, or Stan.</p>
+<p>Stan (<a href="https://mc-stan.org/" class="external-link uri">https://mc-stan.org/</a>) is used to fit the models using modern Hamiltonian Markov Chain Monte Carlo (HMC) sampling.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p><code>exnexstan</code> is not on CRAN but can be installed from GitHub using the <code>install_github()</code> function from the <code>devtools</code> package.</p>
+<p>The <code>exnexstan</code> package is not on CRAN, but can be installed from GitHub using the <code>install_github()</code> function from the <code>devtools</code> package.</p>
 <pre><code><span><span class="co"># Skip if devtools is already installed</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span>repo <span class="op">=</span> <span class="st">"https://github.com/maxdrohde/exnexstan"</span><span class="op">)</span></span></code></pre>
-<p>To use <code>exnexstan</code>, the <code>cmdstanr</code> package must be installed and working. For details on installing <code>cmdstanr</code>, see <a href="https://mc-stan.org/cmdstanr/articles/cmdstanr.html" class="external-link uri">https://mc-stan.org/cmdstanr/articles/cmdstanr.html</a>.</p>
+<p>To use <code>exnexstan</code>, the <code>cmdstanr</code> R package and the <code>cmdstan</code> software must be installed and working.</p>
+<ul>
+<li>
+<code>cmdstanr</code> can be installed via GitHub (see <a href="https://mc-stan.org/cmdstanr/articles/cmdstanr.html" class="external-link uri">https://mc-stan.org/cmdstanr/articles/cmdstanr.html</a>).</li>
+<li>
+<code>cmdstan</code> can be installed from within <code>cmdstanr</code> (see <a href="https://mc-stan.org/cmdstanr/articles/cmdstanr.html#installing-cmdstan-1" class="external-link uri">https://mc-stan.org/cmdstanr/articles/cmdstanr.html#installing-cmdstan-1</a>).</li>
+</ul>
 </div>
 <div class="section level2">
 <h2 id="vignettes">Vignettes<a class="anchor" aria-label="anchor" href="#vignettes"></a>
 </h2>
-<p>We provide two vignettes that describe how to fit EXNEX models for binary data and count data with <code>exnexstan</code>.</p>
+<p>We provide two vignettes that demonstrate how to fit EXNEX models for binary data and count data with <code>exnexstan</code>.</p>
 <ul>
 <li>Binary data: <a href="https://maxdrohde.github.io/exnexstan/vignettes/exnex_binary_vignette.html" class="external-link uri">https://maxdrohde.github.io/exnexstan/vignettes/exnex_binary_vignette.html</a>
 </li>
@@ -89,7 +96,7 @@
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
-<p>For the mathematical details of EXNEX, see the <a href="https://doi.org/10.1002/pst.1730" class="external-link">original paper</a> by Neuenschwander et al. (2016). <code>exnexstan</code> uses the Stan probabilistic programming language for model fitting – further details can be found at <a href="https://mc-stan.org/" class="external-link uri">https://mc-stan.org/</a>.</p>
+<p>For the mathematical details of EXNEX and more in-depth examples, see the <a href="https://doi.org/10.1002/pst.1730" class="external-link">original paper</a> by Neuenschwander et al. (2016).</p>
 </div>
 
   </main><aside class="col-md-3"><div class="links">
