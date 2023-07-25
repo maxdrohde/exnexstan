@@ -55,13 +55,15 @@ Z_{j} &\sim \operatorname{Bernoulli}(p_j) && \text{(Indicator variable of EX vs 
 r_j &\sim \operatorname{Binomial}(n_j, \text{logit}^{-1}(\theta_j)) && \text{(Likelihood)}
 \end{align*}
 
- ![Illustration of the binary EXNEX model showing the connections between the likelihood, priors, and variables.](./binary_diagram.png)
+We can also represent the model graphically as shown below.
 
-To illustrate the `exnexstan` package, we use the data shown in Table 1 of [Neuenschwander et al.](https://onlinelibrary.wiley.com/doi/10.1002/pst.1730). The data come from a basket clinical trial conducted to assess the efficacy of the cancer therapy, Imatinib in multiple disease strata, where the primary outcome variable is binary response to treatment.
+![Illustration of the binary EXNEX model showing the connections between the likelihood, priors, and variables.](./binary_diagram.png)
+
+To illustrate the `exnexstan` package, we use the data shown in Table 1 of [Neuenschwander et al. (2015)](https://onlinelibrary.wiley.com/doi/10.1002/pst.1730). The data come from a basket clinical trial conducted to assess the efficacy of the cancer therapy, Imatinib, in multiple disease strata, where the primary outcome variable is binary response to treatment.
 
 # A first example
 
-We begin by loading the `exnexstan` package and some supporting packages for data visualization.
+We begin by loading the `exnexstan` package and supporting packages for data visualization.
 
 ```{r}
 #| cache: false
@@ -69,15 +71,19 @@ We begin by loading the `exnexstan` package and some supporting packages for dat
 library(exnexstan)
 
 library(tidyverse)
+
 library(bayesplot)  # MCMC Diagnostic plots
 library(tidybayes)  # Bayesian geoms for ggplot
 library(patchwork)  # Plotting tools
 library(gt)         # HTML tables
-library(extrafont)
+library(extrafont)  # Allow custom fonts
 
 # Set global ggplot theme
 theme_set(cowplot::theme_cowplot(font_size=12,
                                  font_family = "Fira Sans"))
+
+# Set bayesplot color scheme
+bayesplot::color_scheme_set("viridis")
 ```
 
 To fit EXNEX models, use the `fit_exnex()` function. We pass in as arguments the data:
@@ -85,10 +91,12 @@ To fit EXNEX models, use the `fit_exnex()` function. We pass in as arguments the
 - `r`: the number of responses for each strata
 - `n`: the sample size for each strata
 
-as well as the priors. For this model, we assume a 0.5 prior probability of exchangeability for each strata. We set `adapt_delta = 0.99` to improve convergence of the model.
+as well as the parameters to specify the priors. The data `r` and `n` must be integers; the model will raise an error if not. For this model, we assume a 0.5 prior probability of exchangeability for each strata, and we use the prior parameters used in the original analysis by [Neuenschwander et al. (2015)](https://onlinelibrary.wiley.com/doi/10.1002/pst.1730). We set `adapt_delta = 0.99`, to improve the accuracy of the MCMC sampling in regions of high posterior curvature (see <https://mc-stan.org/rstanarm/reference/adapt_delta.html> for more details).
 
 ```{r}
 #| output: false
+
+# Fit the binary EXNEX model using the data from Neuenschwander et al. (2015)
 mod <-
 exnexstan::fit_exnex(
           r = c(2,0,1,6,7,3,5,1,0,3) |> as.integer(),
@@ -102,11 +110,11 @@ exnexstan::fit_exnex(
           adapt_delta = 0.99
           )
 
-# Save the posterior draws to a data frame
+# Save the posterior draws to a data.frame
 draws <- mod$draws(format = "df")
 ```
 
-We can take a look at the first 100 posterior draws.
+We fit the model and store the posterior draws as a data.frame. We can then take a look at the first 100 posterior draws from the `draws` data frame.
 
 ```{r}
 #| echo: false
@@ -117,10 +125,18 @@ draws |>
   opt_interactive()
 ```
 
+The data frame contains posterior draws for:
+
+- `mu` and `tau`, the parameters specifying the distribution of the exchangeable strata
+- `theta[1]` to `theta[10]`, the response probability for each strata on the log-odds scale
+- `p[1]` to `p[10]`, the response probability for each strata
+- `p_mix[1]` to `p_mix[10]`, the posterior probability of being exchangeable (EX) for each strata
 
 ## MCMC diagnostics
 
-Before we interpret the results of the model, it is important to check the MCMC diagnostics. Because the functions in `exnexstan` return a `cmdstanr` model object, we can use all the methods already implemented in `cmdstanr`. See the `cmdstan` [documentation](https://mc-stan.org/cmdstanr/index.html) for more details. Note that `cmdstanr` uses the [R6](https://r6.r-lib.org/) object-oriented system in R, so the functions are called after the object using `$`.
+Before we interpret the results of the model, it is important to check the MCMC diagnostics. One of the advantages of using Stan and the Hamiltonian Monte Carlo sampler that it implements is that it provides automatic warnings and diagnostics when the sampler is not performing well, and the results may not be reliable.
+
+Because the functions in `exnexstan` return a `cmdstanr` model object, we can use all the methods already implemented in `cmdstanr`. See the `cmdstan` [documentation](https://mc-stan.org/cmdstanr/index.html) for more details. Note that `cmdstanr` uses the [R6](https://r6.r-lib.org/) object-oriented system in R, so the functions are called after the object using `$`.
 
 `cmdstan_diagnose()` summarizes the automatic checks that Stan runs when fitting the model. Everything looks good since we observe no divergences and E-BFMI /R-hat values are satisfactory.
 
@@ -131,10 +147,10 @@ mod$cmdstan_diagnose()
 We should also visually observe the trace plot using the `bayesplot` package. We will check a few of the relevant parameters.
 
 ```{r}
-#| code-fold: true
-bayesplot::color_scheme_set("viridis")
-
-# Trace plot
+# MCMC Trace plot
+# `pars` select which variables to plot
+# `window` specifies that we look at a certain range of samples
+# `np` allows divergences to be plotted
 mcmc_trace(
   x = draws,
   facet_args = list(ncol = 1),
@@ -142,6 +158,8 @@ mcmc_trace(
   window = c(2000, 3000),
   np = nuts_params(mod))
 ```
+
+More information on diagnosing MCMC sampling issues can be found here: <https://mc-stan.org/bayesplot/articles/visual-mcmc-diagnostics.html>.
 
 ## Summarizing results
 
@@ -152,18 +170,19 @@ Now that we have checked the diagnostics, we can view the results of the model.
 The `summary_table()` function provides an HTML table of the posterior summaries for each strata.
 
 ```{r}
-# Create summary table of posterior
+# Create summary table of posterior draws
 exnexstan::summary_table(mod)
 ```
 
 ### Graphics
 
-Using the `tidybayes` extension to the `ggplot` package, we can create informative visualizations of the posterior distribution for each strata.
+Using the `tidybayes` extension to the `ggplot` package, we can create informative visualizations of the posterior distribution for each strata. First, we examine the response probabilities for each strata. We show both a density plot of the posterior distributions (top) and the posterior intervals for each strata (bottom).
 
 ```{r}
 #| code-fold: true
 
 # Extract response probabilities from draws data.frame
+# and pivot into long format for plotting
 response_probabilities <-
 draws |>
   select(`p[1]`:`p[10]`) |>
@@ -195,11 +214,11 @@ response_probabilities |>
   coord_cartesian(xlim=c(0,1)) +
   labs(color = "Credible Interval") 
 
-# Combine plots
+# Combine plots with patchwork
 p1 / p2
 ```
 
-We can also look at the posterior probability of being exchangeable for each strata.
+We can also look at the posterior probability of being exchangeable, `p_mix[j]`, for each strata.
 
 ```{r}
 #| code-fold: true
@@ -236,19 +255,20 @@ exch_probabilities |>
   coord_cartesian(xlim=c(0,1)) +
   labs(color = "Credible Interval") 
 
-# Combine the plots
+# Combine the plots with patchwork
 p1 / p2
 ```
 
 # Comparing different exchangeability assumptions
 
-In this section, we fit EX, NEX, and EXNEX model for comparison.
+In this section, we fit EX, NEX, and EXNEX models and compare the results.
+
+When fitting the EX model, there can be some MCMC convergence issues (e.g., divergences) because of the extreme posterior curvature that occurs when $\tau$ is close to zero. A common way to solve this issue is to use a non-centered parameterization of the model (see <https://mc-stan.org/docs/stan-users-guide/reparameterization.html>). The `exnexstan::fit_exch()` function implements a non-centered parameterization and can greatly improve the MCMC fitting of EX models. The model structure is equivalent to using `exnexstan::fit_exnex()` with `p_exch` equal to 1 for all strata -- only the parameterization is different for the purpose of MCMC sampling.
 
 ## Model fitting
 
 ```{r}
 #| output: false
-#| code-fold: true
 
 # Data is the same for all the models
 r = c(2,0,1,6,7,3,5,1,0,3) |> as.integer()
@@ -267,6 +287,7 @@ exnexstan::fit_exnex(
           nex_prior_sd = 2.801,
           adapt_delta = 0.99
           )
+          
 # NEX (p_exch = 0 for all strata)
 nex <-
 exnexstan::fit_exnex(
@@ -294,8 +315,6 @@ exnexstan::fit_exch(
 ```
 
 ```{r}
-#| code-fold: true
-
 # Extract the posterior draws from each model and add a column
 # to identify the model
 
@@ -315,6 +334,7 @@ df <- bind_rows(exnex_draws, nex_draws, ex_draws)
 ```{r}
 #| code-fold: true
 
+# Extract and pivot the response probabilities
 response_probabilities <-
 df |>
   select(model, `p[1]`:`p[10]`) |>

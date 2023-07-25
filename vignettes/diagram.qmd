@@ -1,0 +1,80 @@
+---
+title: "XXXXXXX"
+subtitle: "XXXXXXXX"
+author: "Max Rohde"
+date: "`r Sys.Date()`"
+toc: true
+toc-depth: 4
+cache: false
+knitr:
+  opts_chunk: 
+    dev: "ragg_png"
+format:
+  pdf:
+    highlight-style: github
+    colorlinks: true
+    fontsize: "12"
+    cap-location: margin
+    code-block-border-left: "#31BAE9"
+    code-block-bg: "#f1f3f5"
+    code-line-numbers: true
+    include-in-header:
+      - text: |
+          \usepackage{tikz} 
+          \usepackage{xcolor}
+          \definecolor{myblue}{RGB}{241, 243, 245}
+          \usetikzlibrary{arrows}
+          \usetikzlibrary{shapes.geometric}
+          \usetikzlibrary{arrows.meta}   
+          \tikzstyle{block} = [rectangle, draw, fill=myblue, rounded corners, minimum height=4em]
+          \tikzstyle{def} = [rectangle, draw, minimum height=4em]
+          \tikzstyle{connector} = [draw, -latex']
+execute:
+  warning: false
+  message: false
+---
+
+# Diagram 1
+    
+\begin{tikzpicture}[node distance = 3.5cm, auto]
+\node [block, label={\small Likelihood}] (likelihood) {$r_j \sim \operatorname{Binomial}(n_j, \pi_j)$};
+
+\node [def, node distance = 6cm, label={\small Definitions}, left of = likelihood, yshift=-2cm] (def) {\begin{tabular}{l} $r_j$: Number of responses \\ $\pi_j$: Response probability \\ $n_j$: Number of participants \\ $p_j$: Prior exchangeability probability \end{tabular}};
+
+\node [block, node distance = 2.5cm, below of=likelihood] (theta) {$\theta_j = \log \left(\frac{\pi_j}{1 - \pi_j} \right)$};
+
+\node [block, node distance = 4.5cm, label={\small EX}, below left of = theta] (ex) {$\theta_j \sim \operatorname{Normal}(\mu_1, \tau_1)$};
+\node [block, node distance = 4.5cm, label={\small NEX}, below right of = theta] (nex) {$\theta_j \sim \operatorname{Normal}(\mu_0, \tau_0)$};
+
+\node [block, node distance = 3cm, below left of = ex] (mu1) {$\mu_1 \sim \operatorname{Normal}(m_{\mu}, s_{\mu})$};
+\node [block, node distance = 3cm, below right of = ex] (tau1) {$\tau_1 \sim \operatorname{Half-Normal}(m_{\tau}, s_{\tau})$};
+
+
+\path [connector] (likelihood) -- (theta);
+\path [connector] (theta) -- node[anchor=south, left] {$p_j$} (ex);
+\path [connector] (theta) -- node[anchor=south, right] {$1-p_j$} (nex);
+
+\path [connector] (ex) -- (mu1);
+\path [connector] (ex) -- (tau1);
+\end{tikzpicture}
+
+
+# Diagram 2
+
+\begin{tikzpicture}[node distance = 3.5cm, auto]
+\node [block, label={\small Likelihood}] (likelihood) {$r_j \sim \operatorname{Poisson}(\text{exp}(\theta_j + \log(t_j)))$};
+
+\node [def, node distance = 6cm, label={\small Definitions}, left of = likelihood, yshift=-0.5cm, xshift=-1cm] (def) {\begin{tabular}{l} $\theta_j$: Adverse event rate (log-scale) \\ $r_j$: Number of adverse events \\ $t_j$: Strata follow-up time \\ $p_j$: Prior exchangeability probability \end{tabular}};
+
+\node [block, node distance = 4.5cm, label={\small EX}, below left of = likelihood] (ex) {$\theta_j \sim \operatorname{Normal}(\mu_1, \tau_1)$};
+\node [block, node distance = 4.5cm, label={\small NEX}, below right of = likelihood] (nex) {$\theta_j \sim \operatorname{Normal}(\mu_0, \tau_0)$};
+
+\node [block, node distance = 3cm, below left of = ex] (mu1) {$\mu_1 \sim \operatorname{Normal}(m_{\mu}, s_{\mu})$};
+\node [block, node distance = 3cm, below right of = ex] (tau1) {$\tau_1 \sim \operatorname{Half-Normal}(m_{\tau}, s_{\tau})$};
+
+\path [connector] (likelihood) -- node[anchor=south, left] {$p_j$} (ex);
+\path [connector] (likelihood) -- node[anchor=south, right] {$1-p_j$} (nex);
+
+\path [connector] (ex) -- (mu1);
+\path [connector] (ex) -- (tau1);
+\end{tikzpicture}
