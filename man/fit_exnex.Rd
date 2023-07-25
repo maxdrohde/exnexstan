@@ -34,10 +34,13 @@ fit_exnex(
 
 \item{mu_prior_sd}{Standard deviation for the normal prior set on mu.}
 
-\item{tau_prior_mean}{Mean for the normal prior set on tau. Tau has a lower bound of zero so any probability mass below zero will be reallocated.}
+\item{tau_prior_mean}{Mean for the normal prior set on tau.
+Tau has a lower bound of zero so any probability mass below zero will be reallocated.
+Setting \code{tau_prior_mu = 0} and \code{tau_prior_sd = 1} is equivalent to a standard
+half-normal distribution.}
 
 \item{tau_prior_sd}{Standard deviation for the normal prior set on tau.
-Tau has a lower bound of zero, so setting \code{tau_prior_sd = 1} is equivalent to a standard
+Tau has a lower bound of zero, so setting \code{tau_prior_mu = 0} and \code{tau_prior_sd = 1} is equivalent to a standard
 half-normal distribution.}
 
 \item{nex_prior_mean}{Mean for the normal prior set on the non-exchangeable distributions.}
@@ -68,7 +71,7 @@ Fit an EXNEX model with Stan
 
 When \code{p_exch} is set close to 1, there can be convergence issues
 due to the funnel-like geometry that arises when \eqn{\tau} is close to zero.
-See the \code{\link[=fit_exnex]{fit_exnex()}} function, which can fix convergence issue using
+See the \code{\link[=fit_exch]{fit_exch()}} function, which can fix convergence issue using
 a non-centered parameterization of the model for the special case of \code{p_exch = 1}.
 }
 

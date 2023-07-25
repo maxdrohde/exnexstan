@@ -13,9 +13,12 @@
 #' @param r An integer vector with the number of "successes" per strata
 #' @param mu_prior_mean Mean for the normal prior set on mu.
 #' @param mu_prior_sd Standard deviation for the normal prior set on mu.
-#' @param tau_prior_mean Mean for the normal prior set on tau. Tau has a lower bound of zero so any probability mass below zero will be reallocated.
+#' @param tau_prior_mean Mean for the normal prior set on tau.
+#' Tau has a lower bound of zero so any probability mass below zero will be reallocated.
+#' Setting `tau_prior_mu = 0` and `tau_prior_sd = 1` is equivalent to a standard
+#' half-normal distribution.
 #' @param tau_prior_sd Standard deviation for the normal prior set on tau.
-#' Tau has a lower bound of zero, so setting `tau_prior_sd = 1` is equivalent to a standard
+#' Tau has a lower bound of zero, so setting `tau_prior_mu = 0` and `tau_prior_sd = 1` is equivalent to a standard
 #' half-normal distribution.
 #' @param seed Set seed for the random number generated
 #' @param chains Number of MCMC chains to run

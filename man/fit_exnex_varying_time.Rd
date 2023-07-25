@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit_exnex_varying_time.R
 \name{fit_exnex_varying_time}
 \alias{fit_exnex_varying_time}
-\title{Fit an EXNEX model for varying follow-up time with Stan}
+\title{Fit an EXNEX model for count data with varying follow-up time with Stan}
 \usage{
 fit_exnex_varying_time(
   t,
@@ -37,10 +37,13 @@ fit_exnex_varying_time(
 
 \item{tau_lower_bound}{Lower bound for the tau parameter. Any probability mass below that will be reallocated.}
 
-\item{tau_prior_mean}{Mean for the normal prior set on tau. Tau has a lower bound so any probability mass below that will be reallocated.}
+\item{tau_prior_mean}{Mean for the normal prior set on tau.
+Tau has a lower bound of zero so any probability mass below zero will be reallocated.
+Setting \code{tau_prior_mu = 0} and \code{tau_prior_sd = 1} is equivalent to a standard
+half-normal distribution.}
 
 \item{tau_prior_sd}{Standard deviation for the normal prior set on tau.
-Tau has a lower bound of zero, so setting \code{tau_prior_sd = 1} is equivalent to a standard
+Tau has a lower bound of zero, so setting \code{tau_prior_mu = 0} and \code{tau_prior_sd = 1} is equivalent to a standard
 half-normal distribution.}
 
 \item{nex_prior_mean}{Mean for the normal prior set on the non-exchangeable distributions.}
@@ -65,13 +68,13 @@ half-normal distribution.}
 A fitted cmdstanr model
 }
 \description{
-Fit an EXNEX model for varying follow-up time with Stan
+Fit an EXNEX model for count data with varying follow-up time with Stan
 }
 \section{MCMC convergence issues}{
 
 When \code{p_exch} is set close to 1, there can be convergence issues
 due to the funnel-like geometry that arises when \eqn{\tau} is close to zero.
-Setting the lower bound for tau can help with this.
+Setting the lower bound for tau to a small positive number can help with this.
 }
 
 \examples{

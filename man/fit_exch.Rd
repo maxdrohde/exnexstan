@@ -29,10 +29,13 @@ fit_exch(
 
 \item{mu_prior_sd}{Standard deviation for the normal prior set on mu.}
 
-\item{tau_prior_mean}{Mean for the normal prior set on tau. Tau has a lower bound of zero so any probability mass below zero will be reallocated.}
+\item{tau_prior_mean}{Mean for the normal prior set on tau.
+Tau has a lower bound of zero so any probability mass below zero will be reallocated.
+Setting \code{tau_prior_mu = 0} and \code{tau_prior_sd = 1} is equivalent to a standard
+half-normal distribution.}
 
 \item{tau_prior_sd}{Standard deviation for the normal prior set on tau.
-Tau has a lower bound of zero, so setting \code{tau_prior_sd = 1} is equivalent to a standard
+Tau has a lower bound of zero, so setting \code{tau_prior_mu = 0} and \code{tau_prior_sd = 1} is equivalent to a standard
 half-normal distribution.}
 
 \item{seed}{Set seed for the random number generated}

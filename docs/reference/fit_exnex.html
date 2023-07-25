@@ -91,12 +91,15 @@
 
 
 <dt>tau_prior_mean</dt>
-<dd><p>Mean for the normal prior set on tau. Tau has a lower bound of zero so any probability mass below zero will be reallocated.</p></dd>
+<dd><p>Mean for the normal prior set on tau.
+Tau has a lower bound of zero so any probability mass below zero will be reallocated.
+Setting <code>tau_prior_mu = 0</code> and <code>tau_prior_sd = 1</code> is equivalent to a standard
+half-normal distribution.</p></dd>
 
 
 <dt>tau_prior_sd</dt>
 <dd><p>Standard deviation for the normal prior set on tau.
-Tau has a lower bound of zero, so setting <code>tau_prior_sd = 1</code> is equivalent to a standard
+Tau has a lower bound of zero, so setting <code>tau_prior_mu = 0</code> and <code>tau_prior_sd = 1</code> is equivalent to a standard
 half-normal distribution.</p></dd>
 
 
@@ -148,7 +151,7 @@ half-normal distribution.</p></dd>
 
 <p>When <code>p_exch</code> is set close to 1, there can be convergence issues
 due to the funnel-like geometry that arises when \(\tau\) is close to zero.
-See the <code>fit_exnex()</code> function, which can fix convergence issue using
+See the <code><a href="fit_exch.html">fit_exch()</a></code> function, which can fix convergence issue using
 a non-centered parameterization of the model for the special case of <code>p_exch = 1</code>.</p>
     </div>
 

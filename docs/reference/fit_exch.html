@@ -102,12 +102,15 @@ for more information.</p>
 
 
 <dt>tau_prior_mean</dt>
-<dd><p>Mean for the normal prior set on tau. Tau has a lower bound of zero so any probability mass below zero will be reallocated.</p></dd>
+<dd><p>Mean for the normal prior set on tau.
+Tau has a lower bound of zero so any probability mass below zero will be reallocated.
+Setting <code>tau_prior_mu = 0</code> and <code>tau_prior_sd = 1</code> is equivalent to a standard
+half-normal distribution.</p></dd>
 
 
 <dt>tau_prior_sd</dt>
 <dd><p>Standard deviation for the normal prior set on tau.
-Tau has a lower bound of zero, so setting <code>tau_prior_sd = 1</code> is equivalent to a standard
+Tau has a lower bound of zero, so setting <code>tau_prior_mu = 0</code> and <code>tau_prior_sd = 1</code> is equivalent to a standard
 half-normal distribution.</p></dd>
 
 

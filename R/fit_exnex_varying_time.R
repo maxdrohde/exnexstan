@@ -1,4 +1,4 @@
-#' Fit an EXNEX model for varying follow-up time with Stan
+#' Fit an EXNEX model for count data with varying follow-up time with Stan
 #'
 #' @param t A numeric vector with the follow-up time per strata
 #' @param r An integer vector with the number of events per strata
@@ -6,9 +6,12 @@
 #' @param mu_prior_mean Mean for the normal prior set on mu.
 #' @param mu_prior_sd Standard deviation for the normal prior set on mu.
 #' @param tau_lower_bound Lower bound for the tau parameter. Any probability mass below that will be reallocated.
-#' @param tau_prior_mean Mean for the normal prior set on tau. Tau has a lower bound so any probability mass below that will be reallocated.
+#' @param tau_prior_mean Mean for the normal prior set on tau.
+#' Tau has a lower bound of zero so any probability mass below zero will be reallocated.
+#' Setting `tau_prior_mu = 0` and `tau_prior_sd = 1` is equivalent to a standard
+#' half-normal distribution.
 #' @param tau_prior_sd Standard deviation for the normal prior set on tau.
-#' Tau has a lower bound of zero, so setting `tau_prior_sd = 1` is equivalent to a standard
+#' Tau has a lower bound of zero, so setting `tau_prior_mu = 0` and `tau_prior_sd = 1` is equivalent to a standard
 #' half-normal distribution.
 #' @param nex_prior_mean Mean for the normal prior set on the non-exchangeable distributions.
 #' @param nex_prior_sd Standard deviation for the normal prior set on the non-exchangeable distributions.
@@ -33,7 +36,7 @@
 #' @section MCMC convergence issues:
 #' When `p_exch` is set close to 1, there can be convergence issues
 #' due to the funnel-like geometry that arises when \eqn{\tau} is close to zero.
-#' Setting the lower bound for tau can help with this.
+#' Setting the lower bound for tau to a small positive number can help with this.
 #'
 #' @return A fitted cmdstanr model
 #' @export
