@@ -33,6 +33,8 @@ For additional details on the functions, see the package documentation within R,
 
 For the mathematical details of EXNEX and more in-depth examples, see the [original paper](https://doi.org/10.1002/pst.1730) by Neuenschwander et al. (2015).
 
+To view the Stan code used to implement these models, you can view them here: <https://github.com/maxdrohde/exnexstan/tree/master/inst>.
+
 ## Disclaimer
 
 Unless otherwise stated, these programs are for research purposes only. We provide absolutely no warranty of any kind, either expressed or implied, including but not limited to the implied warranties of merchantability and fitness for a particular purpose. The entire risk as to the quality and performance of these programs is with the user. Should any of these programs prove defective, the user assumes the cost of all necessary servicing, repair, or correction. In no event shall the creators of the software and this website be liable for damages, including any lost profits or other special, incidental or consequential damages arising out of the use of or inability to use these programs (including but not limited to loss of data or its analysis being rendered inaccurate or losses sustained by third parties).
