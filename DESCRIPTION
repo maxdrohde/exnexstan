@@ -15,6 +15,7 @@ RoxygenNote: 7.2.3
 Imports: 
     cmdstanr,
     dplyr,
+    fs,
     gt,
     rlang (>= 0.4.11),
     stringr
