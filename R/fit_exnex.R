@@ -81,15 +81,8 @@ fit_exnex <- function(n,
       nex_prior_sd = nex_prior_sd
     )
 
-  # Get the path to the Stan executable file
-  # The files are stored in the `inst` folder when developing the package
-  # and are copied to the user's computer when installed. fs::path_package() is
-  # used to locate the file after installation.
-  # See here for details: https://r-pkgs.org/misc.html#sec-misc-inst
-  exe <- fs::path_package("exnexstan", "exnex")
-
   # Read in the Stan executable file
-  mod <- cmdstanr::cmdstan_model(exe_file = exe)
+  mod <- stan_package_model(name = "exnex", package = "exnexstan")
 
   # Fit the model with cmdstanr
   fit <- mod$sample(
