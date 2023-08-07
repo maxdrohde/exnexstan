@@ -18,7 +18,10 @@ Imports:
     fs,
     gt,
     rlang (>= 0.4.11),
-    stringr
+    stringr,
+    instantiate
 Suggests: 
     roxygen2
 Roxygen: list(markdown = TRUE)
+Additional_repositories:
+    https://mc-stan.org/r-packages/
