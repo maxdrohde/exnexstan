@@ -19,9 +19,11 @@ Imports:
     gt,
     rlang (>= 0.4.11),
     stringr,
-    instantiate
+    instantiate (>= 0.0.1)
 Suggests: 
     roxygen2
 Roxygen: list(markdown = TRUE)
 Additional_repositories:
     https://mc-stan.org/r-packages/
+Remotes:  
+    wlandau/instantiate
