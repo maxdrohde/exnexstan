@@ -79,7 +79,7 @@ fit_exch <- function(n,
   # and are copied to the user's computer when installed. fs::path_package() is
   # used to locate the file after installation.
   # See here for details: https://r-pkgs.org/misc.html#sec-misc-inst
-  exe <- fs::path_package("ex", "exnex_varying_time")
+  exe <- fs::path_package("exnexstan", "exnex_varying_time")
 
   # Read in the Stan executable file
   mod <- cmdstanr::cmdstan_model(exe_file = exe)
