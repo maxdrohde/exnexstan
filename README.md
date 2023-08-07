@@ -15,10 +15,18 @@ install.packages("devtools")
 devtools::install_github(repo = "https://github.com/maxdrohde/exnexstan")
 ```
 
-To use `exnexstan`, the `cmdstanr` R package and the `cmdstan` software must be installed, working and up-to-date.
+To use `exnexstan`, the `cmdstanr` R package and the `cmdstan` software must be installed, working and up-to-date before `exnexstan` is installed.
 
 - `cmdstanr` can be installed via GitHub (see <https://mc-stan.org/cmdstanr/articles/cmdstanr.html>).
 - `cmdstan` can be installed from within `cmdstanr` (see <https://mc-stan.org/cmdstanr/articles/cmdstanr.html#installing-cmdstan-1>).
+
+If you already have `cmdstan` installed, run
+
+```
+cmdstanr::install_cmdstan(overwrite=TRUE)
+```
+
+within R to make sure it is up-to-date. There can be errors when installing `exnexstan` if your `cmdstan` installation is outdated.
 
 ## Vignettes
 
