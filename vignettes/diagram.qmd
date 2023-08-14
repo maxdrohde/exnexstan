@@ -11,6 +11,10 @@ knitr:
     dev: "ragg_png"
 format:
   pdf:
+    mainfont: "Libertinus Serif"
+    sansfont: "Source Sans Pro"
+    monofont: "Source Code Pro"
+    mathfont: "STIX Two Math"
     highlight-style: github
     colorlinks: true
     fontsize: "12"
@@ -39,12 +43,12 @@ execute:
 \begin{tikzpicture}[node distance = 3.5cm, auto]
 \node [block, label={\small Likelihood}] (likelihood) {$r_j \sim \operatorname{Binomial}(n_j, \pi_j)$};
 
-\node [def, node distance = 6cm, label={\small Definitions}, left of = likelihood, yshift=-2cm] (def) {\begin{tabular}{l} $r_j$: Number of responses \\ $\pi_j$: Response probability \\ $n_j$: Number of participants \\ $p_j$: Prior exchangeability probability \end{tabular}};
+\node [def, node distance = 6cm, label={\small Definitions}, left of = likelihood, yshift=-2cm] (def) {\begin{tabular}{l|l} $r_j$ & Number of adverse events \\ $\pi_j$ & Adverse event probability \\ $n_j$ &  Number of participants \\ $p_j$ & Prior exchangeability probability \end{tabular}};
 
 \node [block, node distance = 2.5cm, below of=likelihood] (theta) {$\theta_j = \log \left(\frac{\pi_j}{1 - \pi_j} \right)$};
 
 \node [block, node distance = 4.5cm, label={\small EX}, below left of = theta] (ex) {$\theta_j \sim \operatorname{Normal}(\mu_1, \tau_1)$};
-\node [block, node distance = 4.5cm, label={\small NEX}, below right of = theta] (nex) {$\theta_j \sim \operatorname{Normal}(\mu_0, \tau_0)$};
+\node [block, node distance = 4.5cm, label={\small NEX}, below right of = theta] (nex) {$\theta_j \sim \operatorname{Normal}(\mu_j, \tau_j)$};
 
 \node [block, node distance = 3cm, below left of = ex] (mu1) {$\mu_1 \sim \operatorname{Normal}(m_{\mu}, s_{\mu})$};
 \node [block, node distance = 3cm, below right of = ex] (tau1) {$\tau_1 \sim \operatorname{Half-Normal}(m_{\tau}, s_{\tau})$};
@@ -64,10 +68,10 @@ execute:
 \begin{tikzpicture}[node distance = 3.5cm, auto]
 \node [block, label={\small Likelihood}] (likelihood) {$r_j \sim \operatorname{Poisson}(\text{exp}(\theta_j + \log(t_j)))$};
 
-\node [def, node distance = 6cm, label={\small Definitions}, left of = likelihood, yshift=-0.5cm, xshift=-1cm] (def) {\begin{tabular}{l} $\theta_j$: Adverse event rate (log-scale) \\ $r_j$: Number of adverse events \\ $t_j$: Strata follow-up time \\ $p_j$: Prior exchangeability probability \end{tabular}};
+\node [def, node distance = 6cm, label={\small Definitions}, left of = likelihood, yshift=-0.5cm, xshift=-1cm] (def) {\begin{tabular}{l|l} $\theta_j$ & Adverse event rate (log-scale) \\ $r_j$ & Number of adverse events \\ $t_j$ & Strata follow-up time \\ $p_j$ & Prior exchangeability probability \end{tabular}};
 
 \node [block, node distance = 4.5cm, label={\small EX}, below left of = likelihood] (ex) {$\theta_j \sim \operatorname{Normal}(\mu_1, \tau_1)$};
-\node [block, node distance = 4.5cm, label={\small NEX}, below right of = likelihood] (nex) {$\theta_j \sim \operatorname{Normal}(\mu_0, \tau_0)$};
+\node [block, node distance = 4.5cm, label={\small NEX}, below right of = likelihood] (nex) {$\theta_j \sim \operatorname{Normal}(\mu_j, \tau_j)$};
 
 \node [block, node distance = 3cm, below left of = ex] (mu1) {$\mu_1 \sim \operatorname{Normal}(m_{\mu}, s_{\mu})$};
 \node [block, node distance = 3cm, below right of = ex] (tau1) {$\tau_1 \sim \operatorname{Half-Normal}(m_{\tau}, s_{\tau})$};
